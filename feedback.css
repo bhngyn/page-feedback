@@ -1,0 +1,189 @@
+/* page-feedback — feedback.css
+ *
+ * Inert until the instrument is switched on: nothing here paints except the
+ * one «Feedback» button until <html data-fb="on"> and the marks exist.
+ *
+ * Two rules govern it. The pen must not move a single line — .fbmark carries
+ * no padding, border or margin and spreads by box-shadow instead. And the
+ * chrome must never be mistaken for the page it sits on, so it is a dark slab
+ * in a monospace face, obviously bolted on.
+ *
+ * Override the custom properties below on :root to retheme it.
+ */
+:root {
+  --fb-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --fb-shadow: 0 6px 24px rgb(0 0 0 / .28), 0 1px 3px rgb(0 0 0 / .2);
+  --fb-ink: 70 130 200;          /* the wash, as an rgb triple */
+  --fb-accent: #4d90d9;
+}
+
+/* a light reset, so a host page's global button/textarea rules do not reach in */
+[data-fb-ui], [data-fb-ui] * { box-sizing: border-box; }
+[data-fb-ui] button, [data-fb-ui] textarea {
+  text-transform: none; letter-spacing: normal; text-shadow: none; min-height: 0; min-width: 0; margin: 0;
+}
+
+/* --- the mark ------------------------------------------------------------ */
+.fbmark {
+  background: rgb(var(--fb-ink) / .28);
+  /* the spread that padding would have given, without the reflow padding costs */
+  box-shadow: 0 0 0 .085em rgb(var(--fb-ink) / .28);
+  border-radius: 1px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  color: inherit;
+}
+.fbmark b, .fbmark i, .fbmark a { background: none; }
+@media (prefers-contrast: more) { .fbmark { background: rgb(var(--fb-ink) / .45); } }
+
+/* the region layer: page coordinates, no height of its own, never hit-tested.
+ * No z-index of its own — a positioned element with no z-index creates no
+ * stacking context, so .fbbox ladders against the host page's own stack. */
+#fblayer { position: absolute; left: 0; top: 0; width: 100%; height: 0; pointer-events: none; }
+/* the box is the ONLY evidence a region note exists, so its border clears 3:1
+ * against a light page (WCAG 1.4.11); the fill stays a light wash */
+.fbbox { position: absolute; z-index: 25; border: 1px dashed #366598; border-radius: 2px; background: rgb(var(--fb-ink) / .07); }
+.fbbox__n {
+  position: absolute; left: 0; top: -1.05rem;
+  padding: 0 .3rem; background: #1d1a15; color: #cfe1f5;
+  font-family: var(--fb-mono); font-size: .58rem; line-height: 1.7; border-radius: 2px 2px 0 0;
+}
+/* a box drawn on a fixed or sticky element tracks the element it describes */
+.fbbox--fixed { position: fixed; z-index: 35; }
+
+/* --- the dark-slab shell ------------------------------------------------- */
+.fbpanel, .fbpop {
+  position: fixed;
+  background: #1d1a15; color: #f2ecdd;
+  border: 1px solid #3a352b; border-radius: 3px;
+  box-shadow: var(--fb-shadow);
+  font-family: var(--fb-mono); font-size: .66rem; line-height: 1.45;
+}
+
+/* --- the switch and the panel -------------------------------------------- */
+.fbtoggle {
+  position: fixed; right: 1rem; bottom: 1rem; z-index: 900;
+  padding: .4rem .65rem; cursor: pointer;
+  background: #1d1a15; color: #f2ecdd;
+  border: 1px solid #3a352b; border-radius: 3px;
+  box-shadow: var(--fb-shadow);
+  font-family: var(--fb-mono); font-size: .66rem; line-height: 1.2; letter-spacing: .04em;
+}
+.fbtoggle:hover { border-color: var(--fb-accent); color: #cfe1f5; }
+.fbtoggle.is-on { border-color: var(--fb-accent); color: #cfe1f5; }
+
+.fbpanel {
+  right: 1rem; bottom: 3.4rem; z-index: 900;
+  width: min(22rem, calc(100vw - 2rem));
+  padding: .55rem .7rem .6rem;
+  text-align: left;
+}
+.fbpanel__hd {
+  display: flex; align-items: center; gap: .4rem;
+  text-transform: uppercase; letter-spacing: .09em; font-size: .6rem; color: #b9ad93;
+}
+.fbpanel__hd > .fbpanel__x:nth-of-type(1) { margin-left: auto; }
+.fbpanel__x {
+  background: none; border: 0; cursor: pointer;
+  color: #b9ad93; font: inherit; font-size: .95rem; line-height: 1; padding: 0 .15rem;
+}
+.fbpanel__dot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--fb-accent); box-shadow: 0 0 0 3px rgb(77 144 217 / .2); }
+.fbpanel__x:hover { color: var(--fb-accent); }
+/* folded, the head and the foot stay — Export is always one click away */
+.fbpanel.is-min .fbpanel__body { display: none; }
+
+.fbpanel__count { color: #b9ad93; font-size: .6rem; }
+.fbpanel__how { margin: .4rem 0 .35rem; color: #b9ad93; font-size: .6rem; }
+.fbpanel__region {
+  background: #2a251d; color: #f2ecdd; border: 1px solid #3a352b; border-radius: 2px;
+  font: inherit; font-size: .6rem; padding: .1rem .35rem; cursor: pointer;
+}
+.fbpanel__region:hover { border-color: var(--fb-accent); color: #cfe1f5; }
+.fbpanel__list { max-height: min(45vh, 24rem); overflow-y: auto; border-top: 1px solid #3a352b; }
+.fbpanel__empty { margin: .4rem 0; color: #8d846f; font-size: .6rem; }
+.fbrow { display: flex; align-items: flex-start; gap: .3rem; border-bottom: 1px solid #2a251d; }
+/* a note already exported is marked, not hidden: exporting deletes nothing */
+.fbrow.is-sent { border-left: 2px solid #3a352b; padding-left: .3rem; }
+.fbrow.is-sent .fbrow__ex, .fbrow.is-sent .fbrow__c { color: #8d846f; }
+.fbrow__go {
+  flex: 1; min-width: 0; text-align: left; cursor: pointer;
+  background: none; border: 0; color: #f2ecdd; font: inherit; font-size: .6rem; padding: .3rem 0;
+}
+.fbrow__go:hover .fbrow__ex { color: #cfe1f5; }
+.fbrow__n { color: var(--fb-accent); margin-right: .3rem; }
+.fbrow__kind { color: #8d846f; margin-right: .3rem; }
+.fbrow__ex { color: #b9ad93; overflow-wrap: anywhere; }
+.fbrow__c { display: block; color: #f2ecdd; overflow-wrap: anywhere; }
+.fbrow__tag { display: inline-block; margin-top: .1rem; color: var(--fb-accent); }
+.fbrow__lost { display: block; color: #8d846f; font-style: normal; }
+.fbrow__route { color: #8d846f; font-size: .55rem; margin-right: .3rem; }
+.fbrow__sent { color: #8d846f; font-size: .55rem; }
+.fbrow__acts { display: flex; flex-direction: column; gap: .1rem; }
+.fbrow__x, .fbrow__edit {
+  background: none; border: 0; cursor: pointer; color: #8d846f;
+  font: inherit; font-size: .8rem; line-height: 1; padding: .3rem .15rem;
+}
+.fbrow__x:hover { color: #d9784d; }
+.fbrow__edit:hover { color: var(--fb-accent); }
+
+.fbpanel__ft { margin-top: .45rem; padding-top: .4rem; border-top: 1px solid #3a352b; }
+.fbpanel__btns { display: flex; flex-wrap: wrap; gap: .3rem; }
+.fbb, .fbpop__b {
+  background: #2a251d; color: #f2ecdd; border: 1px solid #3a352b; border-radius: 2px;
+  font: inherit; font-size: .6rem; padding: .2rem .45rem; cursor: pointer;
+}
+.fbb:hover, .fbpop__b:hover { border-color: var(--fb-accent); color: #cfe1f5; }
+/* the one emphasised control in the slab: light on dark */
+.fbb--go, .fbpop__b--go { background: #f2ecdd; color: #1d1a15; border-color: #f2ecdd; font-weight: 600; }
+.fbb--go:hover { background: #cfe1f5; border-color: #cfe1f5; color: #1d1a15; }
+.fbb--go:disabled { background: #2a251d; color: #8d846f; border-color: #3a352b; cursor: not-allowed; font-weight: 400; }
+.fbb--add { width: 100%; }
+.fbpanel__status { margin: .35rem 0 0; color: #8d846f; font-size: .58rem; overflow-wrap: anywhere; }
+.fbpanel :focus-visible, .fbtoggle:focus-visible, .fbpop :focus-visible { outline: 2px solid var(--fb-accent); outline-offset: 1px; }
+
+/* --- drawing a region ---------------------------------------------------- */
+/* ABOVE the panel (900), below the popover (910): the armed overlay owns the
+ * whole viewport, and Esc is the way out (the hint pill says so) */
+.fboverlay { position: fixed; inset: 0; z-index: 905; cursor: crosshair; touch-action: none; }
+.fbhint {
+  position: absolute; left: 50%; top: .6rem; transform: translateX(-50%);
+  padding: .25rem .5rem; background: #1d1a15; color: #f2ecdd;
+  border: 1px solid #3a352b; border-radius: 3px;
+  font-family: var(--fb-mono); font-size: .6rem; white-space: nowrap;
+}
+/* the rectangle being dragged is amber, not the saved-mark blue — while it is
+ * still being drawn it is not yet a note */
+.fbrubber { position: absolute; border: 1px dashed #c46a13; background: rgb(196 106 19 / .1); pointer-events: none; }
+
+/* --- the popover --------------------------------------------------------- */
+.fbpop {
+  left: 0; top: 0; z-index: 910;
+  width: min(20rem, calc(100vw - 2rem));
+  padding: .5rem .6rem .55rem;
+}
+.fbpop__hd { margin: 0 0 .3rem; color: #b9ad93; font-size: .6rem; }
+.fbpop__x { margin: 0 0 .35rem; color: #b9ad93; font-size: .6rem; overflow-wrap: anywhere; }
+.fbpop__tags { display: flex; flex-wrap: wrap; gap: .25rem; margin-bottom: .35rem; }
+.fbpop__tag {
+  background: #2a251d; color: #b9ad93; border: 1px solid #3a352b; border-radius: 2px;
+  font: inherit; font-size: .6rem; padding: .15rem .4rem; cursor: pointer;
+}
+.fbpop__tag:hover { border-color: var(--fb-accent); color: #cfe1f5; }
+.fbpop__tag.is-on { background: var(--fb-accent); border-color: var(--fb-accent); color: #10202f; }
+.fbpop__ta {
+  display: block; width: 100%; resize: vertical;
+  background: #14120e; color: #f2ecdd; border: 1px solid #3a352b; border-radius: 2px;
+  font: inherit; font-size: .62rem; padding: .3rem .35rem;
+}
+.fbpop__ft { display: flex; align-items: center; gap: .3rem; margin-top: .35rem; }
+.fbpop__b--go:disabled { background: #2a251d; color: #8d846f; border-color: #3a352b; cursor: not-allowed; font-weight: 400; }
+.fbpop__k { margin-left: auto; color: #b9ad93; font-size: .55rem; }
+
+@media print {
+  .fbtoggle, .fbpanel, .fbbox, .fbpop { display: none; }
+  .fbmark { background: none; box-shadow: none; }
+}
+@media (max-width: 560px) {
+  .fbtoggle { right: .5rem; bottom: .5rem; }
+  .fbpanel { left: .5rem; right: .5rem; width: auto; bottom: 2.9rem; }
+}

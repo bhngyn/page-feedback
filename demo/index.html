@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>page-feedback · demo</title>
+<link rel="stylesheet" href="../feedback.css">
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; background: #faf7f0; color: #222; font: 17px/1.6 Georgia, "Times New Roman", serif; }
+  header { position: sticky; top: 0; background: #fffdf8; border-bottom: 1px solid #ddd; padding: .6rem 1.5rem; display: flex; gap: 1.2rem; align-items: baseline; }
+  header b { font-family: system-ui, sans-serif; }
+  header a { color: #36c; text-decoration: none; font-family: system-ui, sans-serif; font-size: .9rem; }
+  header a[aria-current] { text-decoration: underline; }
+  main { max-width: 42rem; margin: 2rem auto 6rem; padding: 0 1.5rem; }
+  h1 { font-size: 2rem; margin: 0 0 1rem; }
+  .rule { height: 1px; background: #bbb; margin: 2rem 0; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .card { border-top: 2px solid #36c; padding-top: .5rem; }
+  .card h3 { margin: 0 0 .25rem; font-size: 1.05rem; }
+  .card p { margin: 0; font-size: .92rem; }
+  sup.fn { font-size: .7em; color: #888; }
+  kbd { font: 12px ui-monospace, monospace; border: 1px solid #ccc; border-radius: 3px; padding: 0 .3rem; background: #fff; }
+</style>
+<script>
+  /* Every key is optional — this shows the hooks a host page can supply. */
+  window.PageFeedbackConfig = {
+    name: "page-feedback demo",
+    storageKey: "page-feedback-demo",
+    roots: ["main", "header"],
+    skip: "sup.fn",                       // footnote markers are left out of captured quotes
+    dataKeys: ["data-id"],
+    routeName: () => (location.hash.startsWith("#/b") ? "page-b" : "page-a"),
+    resolveBlock: (id) => {
+      const m = /^p(\d+)$/.exec(id);
+      return m ? { file: "content/demo.md", n: Number(m[1]) } : null;
+    },
+    likely: (note) => ["demo/index.html (PAGES." + (note.routeName === "page-b" ? "b" : "a") + ")"],
+  };
+</script>
+<script src="../feedback.js" defer></script>
+</head>
+<body>
+<header>
+  <b>page-feedback</b>
+  <a href="#/a" data-id="nav-a">Page A</a>
+  <a href="#/b" data-id="nav-b">Page B</a>
+</header>
+<main id="view"></main>
+<script>
+  /* a tiny hash router, so notes can be made on two "pages" */
+  const PAGES = {
+    a: `<h1>Page A</h1>
+      <p id="p1">Click <b>Feedback</b> (bottom right) or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>.
+        Then <b>select any run of text</b> — like <a href="#/a">this linked phrase</a> — and leave a note.<sup class="fn">1</sup></p>
+      <p id="p2">Press <kbd>R</kbd> to draw a region around something without text, such as the hairline below,
+        or <kbd>N</kbd> to add a note about the page as a whole. Notes persist across reloads and across pages.</p>
+      <div class="rule"></div>
+      <div class="cards">
+        <div class="card" data-id="card-1"><h3>First card</h3><p>Draw a box across both cards to see the ambiguity warning.</p></div>
+        <div class="card" data-id="card-2"><h3>Second card</h3><p>When you are done, press Export — you get one Markdown file.</p></div>
+      </div>`,
+    b: `<h1>Page B</h1>
+      <p id="p3">Notes made on page A are listed here too, with the route they belong to. Click one to jump back to it.</p>
+      <p id="p4">The export opens with a checklist, then a section per note, then the raw notes as a JSON block.</p>`,
+  };
+  function render() {
+    const k = location.hash.startsWith("#/b") ? "b" : "a";
+    document.getElementById("view").innerHTML = PAGES[k];
+    document.querySelectorAll("header a").forEach((a) => a.toggleAttribute("aria-current", a.getAttribute("href") === "#/" + k));
+    document.title = "page-feedback · demo · " + (k === "a" ? "Page A" : "Page B");
+  }
+  window.addEventListener("hashchange", render);
+  render();
+</script>
+</body>
+</html>
