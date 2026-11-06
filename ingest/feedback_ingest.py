@@ -121,6 +121,8 @@ def latest(prefix: str) -> Path:
 def show(n: dict, multi: bool = False) -> str:
     tag = n.get("tag") or "(no tag)"
     route = n.get("route", "—")
+    if n.get("where"):
+        route = f"{n['where']} · {route}"
     sent = f" · sent {n['sent']}" if n.get("sent") else ""
     file_tag = f" [{n['_file']}]" if multi and n.get("_file") else ""
     head = f"{n.get('n', '?'):>2} · {n.get('kind', '?'):<6} · {tag:<8} · {route}{sent}{file_tag}"

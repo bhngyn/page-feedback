@@ -53,6 +53,7 @@
  *     dataKeys: ["data-id"],      // attributes that name a thing in a CSS path
  *     route: () => location.pathname + location.hash,
  *     routeName: () => "",        // a label for the kind of page
+ *     where: () => "",            // the tab or view the reader is on (default: the selected tab's label)
  *     resolveBlock: (id, el) => null,  // → {file, n, kind?, shown?}
  *     likely: (note) => [],       // → the source files that render it
  *     subscribe: (fn) => {},      // call fn after your app re-renders
@@ -73,6 +74,7 @@
     dataKeys: ["data-id", "data-key", "data-testid"],
     route: () => location.pathname + location.hash,
     routeName: () => "",
+    where: null,
     resolveBlock: null,
     likely: null,
     subscribe: null,
@@ -217,6 +219,35 @@
   const routeOf = (r) => String(r || "").split("?")[0];
   const currentRoute = () => { try { return String(CFG.route() || "/"); } catch (_) { return location.pathname + location.hash; } };
   const currentRouteName = () => { try { return String(CFG.routeName() || ""); } catch (_) { return ""; } };
+  /* WHERE the reader was: the label of the tab or view that was showing. A
+   * host can say it (`where`); otherwise the selected tab, or the current
+   * link in a nav, is read off the page. Stamped on the note when it is made,
+   * so a note made on one tab still says so after the reader moves on. */
+  const TABSEL = '[role="tab"][aria-selected="true"], nav [aria-current="page"], nav [aria-current="true"]';
+  function currentWhere() {
+    try {
+      if (typeof CFG.where === "function") return collapse(String(CFG.where() || "")).slice(0, 80);
+      for (const el of document.querySelectorAll(TABSEL)) {
+        if (el.closest("[data-fb-ui]") || !el.getClientRects().length) continue;
+        const t = collapse(el.textContent || "");
+        if (t) return t.slice(0, 80);
+      }
+    } catch (_) {}
+    return "";
+  }
+  /* a route as a person reads it: on the page it was made on, just its hash
+   * (filters, open cells and all); elsewhere, the whole route */
+  function showRoute(r) {
+    r = String(r || "");
+    try {
+      const u = new URL(r, location.href);
+      if (u.origin === location.origin && u.pathname === location.pathname && u.search === location.search)
+        return u.hash || "/";
+    } catch (_) {}
+    return r || "/";
+  }
+  /* "Risks at home · #v=risks&c=Nigeria", or what there is of it */
+  const placeOf = (nt) => [nt.where || "", showRoute(nt.route)].filter(Boolean).join(" · ");
 
   // ---- the CSS path ----------------------------------------------------
   /* Readable rather than minimal: what a person greps for. An id anchors the
@@ -351,7 +382,7 @@
      * document's selection. The route is stamped now too: the note belongs to
      * the page the selection was made on. */
     pending = { kind: "text", range: range.cloneRange(), text: data,
-      route: currentRoute(), routeName: currentRouteName(), title: document.title };
+      route: currentRoute(), routeName: currentRouteName(), where: currentWhere(), title: document.title };
     const rects = range.getClientRects();
     const at = rects.length ? rects[rects.length - 1] : range.getBoundingClientRect();
     openPop({ excerpt: clip(data.exact, 90), at });
@@ -385,7 +416,7 @@
       if (w < MINDRAG || ht < MINDRAG) return;
       const data = captureRegion(x, y, w, ht);
       pending = { kind: "region", region: data,
-        route: currentRoute(), routeName: currentRouteName(), title: document.title };
+        route: currentRoute(), routeName: currentRouteName(), where: currentWhere(), title: document.title };
       openPop({ at: { left: x, top: y, right: x + w, bottom: y + ht, width: w, height: ht } });
     });
     /* the page must not move under the crosshair: a wheel scroll mid-drag
@@ -576,7 +607,7 @@
    * rather than hunt for something to select for each one. */
   function addPageNote() {
     if (!on || pop || overlay) return;
-    pending = { kind: "page", route: currentRoute(), routeName: currentRouteName(), title: document.title };
+    pending = { kind: "page", route: currentRoute(), routeName: currentRouteName(), where: currentWhere(), title: document.title };
     openPop({ page: true });
   }
 
@@ -614,6 +645,8 @@
     ta = fh("textarea.fbpop__ta", { rows: 3, placeholder: "Your note…", on: { input: able } });
     if (editing && editing.comment) ta.value = editing.comment;
     save = fh("button.fbpop__b.fbpop__b--go", { type: "button", disabled: true, on: { click: done } }, editing ? "Save changes" : "Save");
+    const madeOn = editing ? placeOf(editing)
+      : pending ? [pending.where || "", showRoute(pending.route)].filter(Boolean).join(" · ") : "";
     const said = editing ? excerptOf(editing, 90)
       : opts.page ? (document.title || "this page")
       : opts.excerpt;
@@ -621,6 +654,7 @@
       editing ? fh("p.fbpop__hd", `Editing note ${editing.n}`) : null,
       opts.page && !editing ? fh("p.fbpop__hd", "A note about this page — nothing is marked") : null,
       fh("p.fbpop__x", said ? "“" + said + "”" : `region · ${Math.round(opts.at.width)}×${Math.round(opts.at.height)}`),
+      madeOn ? fh("p.fbpop__on", { title: "the tab and the address this note records" }, "on " + madeOn) : null,
       tags.length ? fh("div.fbpop__tags", tags.map(tagBtn)) : null,
       ta,
       fh("div.fbpop__ft",
@@ -685,6 +719,7 @@
       kind: pending.kind,
       route: pending.route || currentRoute(),
       routeName: pending.routeName || "",
+      where: pending.where || "",
       title: pending.title || document.title,
       tag: tag || null,
       comment: collapse(comment) || null,
@@ -850,7 +885,8 @@
         fh("span.fbrow__ex", "“" + excerptOf(nt) + "”"),
         nt.comment ? fh("span.fbrow__c", clip(nt.comment, 80)) : null,
         nt.tag ? fh("span.fbrow__tag", nt.tag) : null,
-        elsewhere ? fh("span.fbrow__route", routeOf(nt.route)) : null,
+        nt.where ? fh("span.fbrow__where", nt.where) : null,
+        elsewhere ? fh("span.fbrow__route", showRoute(nt.route)) : null,
         nt.sent ? fh("span.fbrow__sent", "sent") : null,
         !elsewhere && nt.found === false ? fh("span.fbrow__lost", "not on this page now") : null),
       fh("div.fbrow__acts",
@@ -864,7 +900,7 @@
    * not throw away the reader's place in the queue */
   const rowCache = new Map();
   const sigOf = (nt) => [nt.n, nt.kind, nt.tag, nt.comment, nt.found, nt.sent,
-    here(nt) ? "" : routeOf(nt.route), excerptOf(nt)].join("␟");
+    nt.where || "", here(nt) ? "" : showRoute(nt.route), excerptOf(nt)].join("␟");
   function renderList() {
     const list = panel && qs(".fbpanel__list", panel);
     if (!list) return;
@@ -1015,7 +1051,8 @@
     out.push(`# ${CFG.name ? CFG.name + " · " : ""}feedback · ${stampHead(d)}`, "");
     out.push(`${plural(n, "note")}${n < all ? ` · ${all - n} more in the queue, exported earlier` : ""}`
       + ` · ${location.origin}${location.pathname} · viewport ${window.innerWidth}×${window.innerHeight} · ${shortUA()}`, "");
-    out.push("Each note names the route it was made on and the rendered element as a CSS");
+    out.push("Each note names the tab and route it was made on (the route is the page's");
+    out.push("address after #, with any filters and open items) and the rendered element as a CSS");
     out.push("path from the page root — and, where the host page supplies them, the source");
     out.push("paragraph and a best guess at the files that render it. «likely» is a guess;");
     out.push("everything else — the path, the paragraph, every figure on a region — is measured.", "");
@@ -1029,11 +1066,12 @@
      * first screen is the worklist itself and the evidence follows it. */
     out.push("## The list", "");
     for (const nt of list) {
-      out.push(`- [ ] ${nt.n} · ${nt.tag || nt.kind} · ${routeOf(nt.route)} — ${nt.comment || "“" + excerptOf(nt, 60) + "”"}`);
+      out.push(`- [ ] ${nt.n} · ${nt.tag || nt.kind} · ${placeOf(nt)} — ${nt.comment || "“" + excerptOf(nt, 60) + "”"}`);
     }
     out.push("");
     for (const nt of list) {
-      out.push(`## ${nt.n} · ${nt.kind} · ${nt.tag || "(no tag)"} · ${nt.route}`, "");
+      out.push(`## ${nt.n} · ${nt.kind} · ${nt.tag || "(no tag)"} · ${placeOf(nt)}`, "");
+      out.push(`- on: ${nt.where ? "tab «" + nt.where + "» · " : ""}route ${nt.route}`);
       if (nt.kind === "text") {
         const t = nt.text;
         out.push(`> "${clip(t.exact, 300)}"`, "");
