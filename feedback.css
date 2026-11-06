@@ -116,7 +116,8 @@
 .fbrow__c { display: block; color: #f2ecdd; overflow-wrap: anywhere; }
 .fbrow__tag { display: inline-block; margin-top: .1rem; color: var(--fb-accent); }
 .fbrow__lost { display: block; color: #8d846f; font-style: normal; }
-.fbrow__route { color: #8d846f; font-size: .55rem; margin-right: .3rem; }
+.fbrow__route { color: #8d846f; font-size: .55rem; margin-right: .3rem; overflow-wrap: anywhere; }
+.fbrow__where { display: inline-block; margin: .1rem .3rem 0 0; color: #b9ad93; font-size: .55rem; }
 .fbrow__sent { color: #8d846f; font-size: .55rem; }
 .fbrow__acts { display: flex; flex-direction: column; gap: .1rem; }
 .fbrow__x, .fbrow__edit {
@@ -163,6 +164,7 @@
 }
 .fbpop__hd { margin: 0 0 .3rem; color: #b9ad93; font-size: .6rem; }
 .fbpop__x { margin: 0 0 .35rem; color: #b9ad93; font-size: .6rem; overflow-wrap: anywhere; }
+.fbpop__on { margin: -.2rem 0 .35rem; color: #8d846f; font-size: .55rem; overflow-wrap: anywhere; }
 .fbpop__tags { display: flex; flex-wrap: wrap; gap: .25rem; margin-bottom: .35rem; }
 .fbpop__tag {
   background: #2a251d; color: #b9ad93; border: 1px solid #3a352b; border-radius: 2px;

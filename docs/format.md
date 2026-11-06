@@ -7,9 +7,11 @@ parts. A complete example is [`example-export.md`](example-export.md).
    count, the page URL, the viewport and a short browser name, and two short
    paragraphs explaining the figures.
 2. **`## The list`** — one GitHub-checklist line per note, in the order they
-   were made: `- [ ] n · tag-or-kind · route — comment`. The file is handed
+   were made: `- [ ] n · tag-or-kind · where · route — comment` (`where` is the tab;
+   a route made on the exported page is shown as its hash, with its filters). The file is handed
    over to be worked through, so the worklist comes first.
-3. **One section per note** — `## n · kind · tag-or-(no tag) · route`, then:
+3. **One section per note** — `## n · kind · tag-or-(no tag) · where · route`, then an `on:` line with the
+   tab and the full route, then:
    - **text** — a blockquote of the exact selection (cut at 300 characters),
      `para` (only if the host supplies `resolveBlock`), `path`, and `context`
      (the words either side, with the selection in «…»).
@@ -36,6 +38,7 @@ Every note in the JSON block is an object with:
 | `kind` | `"text"` \| `"region"` \| `"page"` | |
 | `route` | string | the host's `route()` when the note was made |
 | `routeName` | string | the host's `routeName()`, or `""` |
+| `where` | string? | the tab or view the reader was on (the host's `where()`, or the selected tab's label); absent on notes made before it existed |
 | `title` | string | `document.title` |
 | `tag` | string \| null | |
 | `comment` | string \| null | a note has a tag, a comment, or both |

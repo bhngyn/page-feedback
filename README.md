@@ -82,6 +82,8 @@ window.PageFeedbackConfig = {
   dataKeys: ["data-id"],           // attributes worth writing into a CSS path
   route: () => location.pathname + location.hash,  // what "page" a note belongs to
   routeName: () => "",             // a label for the kind of page, stored on each note
+  where: () => "",                 // the tab or view the reader is on; default: the label of the
+                                   // [role=tab][aria-selected=true] or nav [aria-current] element
   resolveBlock: (id, el) => null,  // block id → { file, n, kind?: "p"|"fn", shown? }
   likely: (note) => [],            // note → source files that probably render it
   subscribe: (refresh) => {},      // register `refresh` with your app's render hook
